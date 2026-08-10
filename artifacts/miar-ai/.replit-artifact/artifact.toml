@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "MIAR AI"
+description = "Um espaço pessoal de IA centrado em Histórias, memória, conversas e configurações simples de modelos para pessoas que precisam de foco e clareza."
+version = "1.0.0"
+id = "artifacts/miar-ai"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26152
+
+[services.development]
+run = "pnpm --filter @workspace/miar-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/miar-ai", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/miar-ai/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26152"
+BASE_PATH = "/"
