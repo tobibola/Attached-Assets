@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface MemoryEntry {
+  id: string;
+  /** @nullable */
+  storyId: string | null;
+  content: string;
+  createdAt: Date;
 }

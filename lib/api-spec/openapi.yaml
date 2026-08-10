@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: stories
+    description: Persistent story context and conversations
+  - name: memory
+    description: Persistent memory entries
+  - name: settings
+    description: User model and voice preferences
 paths:
   /healthz:
     get:
@@ -24,7 +30,161 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /stories:
+    get:
+      operationId: listStories
+      tags: [stories]
+      summary: List stories
+      responses:
+        "200":
+          description: Stories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Story"
+    post:
+      operationId: createStory
+      tags: [stories]
+      summary: Create a story
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoryInput"
+      responses:
+        "201":
+          description: Created story
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Story"
+  /stories/{storyId}:
+    patch:
+      operationId: updateStory
+      tags: [stories]
+      summary: Update a story
+      parameters:
+        - $ref: "#/components/parameters/StoryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoryUpdate"
+      responses:
+        "200":
+          description: Updated story
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Story"
+    delete:
+      operationId: deleteStory
+      tags: [stories]
+      summary: Archive a story
+      parameters:
+        - $ref: "#/components/parameters/StoryId"
+      responses:
+        "204":
+          description: Story archived
+  /stories/{storyId}/messages:
+    get:
+      operationId: listMessages
+      tags: [stories]
+      summary: List messages in a story
+      parameters:
+        - $ref: "#/components/parameters/StoryId"
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendMessage
+      tags: [stories]
+      summary: Send a message to MIAR AI
+      parameters:
+        - $ref: "#/components/parameters/StoryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "201":
+          description: Created user and assistant messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+  /memory:
+    get:
+      operationId: listMemory
+      tags: [memory]
+      summary: List memory entries
+      responses:
+        "200":
+          description: Memory entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MemoryEntry"
+    delete:
+      operationId: clearMemory
+      tags: [memory]
+      summary: Clear memory entries
+      responses:
+        "204":
+          description: Memory cleared
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get MIAR settings
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update MIAR settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
 components:
+  parameters:
+    StoryId:
+      name: storyId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +193,93 @@ components:
           type: string
       required:
         - status
+    Story:
+      type: object
+      required: [id, name, context, color, readAll, archived, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        context: { type: string }
+        color: { type: string }
+        readAll: { type: boolean }
+        archived: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    StoryInput:
+      type: object
+      required: [name, context, color, readAll]
+      properties:
+        name: { type: string, minLength: 1 }
+        context: { type: string }
+        color: { type: string }
+        readAll: { type: boolean }
+    StoryUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        context: { type: string }
+        color: { type: string }
+        readAll: { type: boolean }
+        archived: { type: boolean }
+    Message:
+      type: object
+      required: [id, storyId, role, text, createdAt]
+      properties:
+        id: { type: string }
+        storyId: { type: string }
+        role:
+          type: string
+          enum: [user, assistant]
+        text: { type: string }
+        createdAt: { type: string, format: date-time }
+        attachments:
+          type: array
+          items: { type: string }
+    MessageInput:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+        attachments:
+          type: array
+          items: { type: string }
+    MemoryEntry:
+      type: object
+      required: [id, storyId, content, createdAt]
+      properties:
+        id: { type: string }
+        storyId: { type: ["string", "null"] }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+    ProviderSetting:
+      type: object
+      required: [name, model, enabled, connected]
+      properties:
+        name:
+          type: string
+          enum: [Gemini, Groq, Mistral, OpenRouter]
+        model: { type: string }
+        enabled: { type: boolean }
+        connected: { type: boolean }
+    Settings:
+      type: object
+      required: [theme, voiceSpeed, providers]
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+        voiceSpeed: { type: number, minimum: 0, maximum: 3 }
+        providers:
+          type: array
+          items: { $ref: "#/components/schemas/ProviderSetting" }
+    SettingsUpdate:
+      type: object
+      required: [theme, voiceSpeed, providers]
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+        voiceSpeed: { type: number, minimum: 0, maximum: 3 }
+        providers:
+          type: array
+          items: { $ref: "#/components/schemas/ProviderSetting" }
 
